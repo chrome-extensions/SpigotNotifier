@@ -1,0 +1,1 @@
+var snApp = angular.module("snApp", []);

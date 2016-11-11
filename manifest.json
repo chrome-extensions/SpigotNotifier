@@ -1,34 +1,16 @@
 {
-    "manifest_version":2,
-    "name":"Spigot Notifier",
-    "description":"Get SpigotMc.org notifications in chrome.",
-    "version":"1.8.6",
-    "icons":{
-        "32":"icon32.png",
-        "48":"icon48.png",
-        "128":"icon128.png",
-        "512":"icon512.png"
-    },
-    "browser_action":{
-        "default_popup":"popup.html"
-    },
-    "content_scripts":[
-        {
-            "js":[
-                "jquery.js",
-				"spigotnotifier.js",
-				"notificationManager.js"
-            ],
-            "matches":[
-                "http://*/*",
-                "https://*/*"
-            ]
-        }
-    ],
-    "background":{
-        "page":"background.html"
-    },
-    "permissions":[
+  "manifest_version": 2,
+  "name"            : "SpigotNotifier",
+  "description"     : "SpigotNotifier",
+  "short_name"      : "SN",
+  "version"         : "2.0",
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon" : "img/icon512.png"
+  },
+  "permissions": [
+    "debugger",
+    "storage",
         "activeTab",
         "notifications",
         "storage",
