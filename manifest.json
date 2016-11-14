@@ -8,6 +8,9 @@
     "default_popup": "popup.html",
     "default_icon" : "img/icon512.png"
   },
+  "background":{
+        "page":"background.html"
+  },
   "permissions": [
     "debugger",
     "storage",

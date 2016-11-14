@@ -1,0 +1,1 @@
+var bgApp = angular.module("bgApp", []);
