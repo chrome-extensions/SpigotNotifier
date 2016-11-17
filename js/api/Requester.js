@@ -7,6 +7,8 @@ var app = typeof snApp != "undefined" ? snApp : bgApp;
 app.service('requester', function($q, Notifications) {
 
     var interval = undefined;
+    var alerts = 0, messages = 0;
+    var suspend = false;
     
     this.startIntervals = function()
     {
@@ -14,28 +16,52 @@ app.service('requester', function($q, Notifications) {
 
         interval = setInterval(function()
         {
-            self.request().then(function(data)
+            if(!suspend)
             {
-                var total = 0;
-                //If this time total = 0 but previously something else... increment.
-
-                if(data.alerts)
+                self.request().then(function(data)
                 {
-                    total += data.alerts;
-                    Notifications.createNotification("New Alert", data.user + ", you've got a new notification.");
-                }
+                    var total = 0;
 
-                if(data.messages)
-                {
-                    total += data.messages;
-                    Notifications.createNotification("New Message", data.user + ", you've got a new message.");
-                }
+                    if(data.alerts)
+                    {
+                        total += data.alerts;
 
-                chrome.browserAction.setBadgeText({
-                    text: (total == 0) ? "" : total.toString()
-                });
+                        if(data.alerts != alerts)
+                        {
+                            alerts = data.alerts;
+                            var titleStr = data.alerts > 1 ? "New Alerts!" : "New Alert!";
+                            var msgStr = data.alerts > 1 ? data.user + ", you've got "+data.alerts+" new notifications." : data.user + ", you've got a new notification.";
+                            Notifications.createNotification(titleStr, msgStr);
+                        }
+                    }
+                    else
+                    {
+                        alerts = 0;
+                    }
 
-            })
+                    if(data.messages)
+                    {
+                        total += data.messages;
+
+                        if(data.messages != messages)
+                        {
+                            messages = data.messages;
+                            var titleStr = data.messages > 1 ? "New Messages!" : "New Message!";
+                            var msgStr = data.messages > 1 ? data.user + ", you've got "+data.messages+" you've got a new messages." : data.user + ", you've got a new message.";
+                            Notifications.createNotification(titleStr, msgStr);
+                        }
+                    }
+                    else
+                    {
+                        messages = 0;
+                    }
+
+                    chrome.browserAction.setBadgeText({
+                        text: (total == 0) ? "" : total.toString()
+                    });
+
+                })
+            }
         }, 3000);
     }
 
@@ -43,13 +69,13 @@ app.service('requester', function($q, Notifications) {
         var defer = $q.defer();
 
         this.getSource(function(source)
-        {
+        {         
             defer.resolve(source);
         })
 
         if(app.name == "snApp")
             NProgress.set(0.9);
-
+            
         return defer.promise;
     }
 
@@ -58,12 +84,13 @@ app.service('requester', function($q, Notifications) {
         var self = this;
 
         $.ajax({
-            url: 'http://www.adriani6.co.uk/soon.html'
+            url: 'http://www.spigotmc.org'
         }).success(function(data){
             self.processData(data, function(processed)
             {
                 if(app.name == "snApp")
-                    NProgress.set(0.6);
+                    NProgress.set(0.6);                   
+
                 callback(processed);
             })
         })
@@ -95,37 +122,70 @@ app.service('requester', function($q, Notifications) {
         })
     }
 
-    function CustomTimer(callback, delay)
+    this.suspend = function()
     {
+        var id, started, remaining, running;
 
-        var id, started, remaining = delay, running
+        this.start = function(delay) {
+            remaining = delay;
+            var self = this;
+            suspend = true;
+            running = true;
+            started = new Date();
 
-        this.start = function() {
-            running = true
-            started = new Date()
-            id = setTimeout(callback, remaining)
+            chrome.storage.sync.set({'suspend': {start: started.toString(), delay: delay}}, function() {
+                // Notify that we saved.
+                console.log('Settings saved');
+            });
+
+            id = setTimeout(function()
+            {
+                self.clear()
+            }, remaining);
         }
 
-        this.pause = function() {
-            running = false
-            clearTimeout(id)
-            remaining -= new Date() - started
+        this.resume = function()
+        {
+            running = true;
+            var self = this;
+            id = setTimeout(function()
+            {
+                self.clear()
+            }, remaining);
         }
 
-        this.getTimeLeft = function() {
+        this.pause = function(cb) {
+            chrome.storage.sync.get('suspend', function(res) {
+                running = false
+                clearTimeout(id)
+                remaining -= new Date() - new Date(res.suspend.start);
+                cb();
+            });   
+        }
+
+        this.getTimeLeft = function(cb) {
             if (running) {
-                this.pause()
-                this.start()
+                var self = this;
+                this.pause(function()
+                {
+                    self.resume();
+                    cb(remaining);
+                })   
             }
-
-            return remaining
+            else
+                return "Not Running";
         }
 
-        this.getStateRunning = function() {
-            return running
+
+        this.clear = function()
+        {
+            remaining = 0;
+            running = false;
+            clearTimeout(id);
+            suspend = false;
+            id = undefined;
         }
 
-        this.start()
+        return this;
     }
-
 });

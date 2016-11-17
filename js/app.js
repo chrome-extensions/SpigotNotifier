@@ -1,1 +1,1 @@
-var snApp = angular.module("snApp", []);
+var snApp = angular.module("snApp", ['ngRoute', 'ui.bootstrap-slider']);
